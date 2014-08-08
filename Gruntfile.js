@@ -15,7 +15,7 @@ module.exports = function(grunt) {
 		//clean
 		clean: {
 			dev: ["dev/"],
-			build: ["build/"]
+			dist: ["dist/"]
 		},
 
 		// The actual grunt server settings
@@ -29,24 +29,30 @@ module.exports = function(grunt) {
 			livereload: {
 				options: {
 					open: true,
-					base: ['dev']
+					base: ['dev/']
 				}
 			},
 		},
 
 		copy: {
+			index: {
+				files: [
+					{src: 'source/index.html', dest: 'dev/index.html'}
+				]
+			},
 			dev: {
 				files: [
 					// includes files within path
-					{expand: true, flatten: true, src: ['source/assets/**'], dest: 'dev/assets/', filter: 'isFile'}
+					{expand: true, flatten: true, src: ['source/assets/**'], dest: 'dev/assets/', filter: 'isFile'},
 					//,{expand: true, flatten: true, src: ['source/css/fonts/**'], dest: 'dev/css/fonts/', filter: 'isFile'}
 				]
 			},
-			build: {
+			dist: {
 				files: [
 					// includes files within path
-					{expand: true, flatten: true, src: ['source/assets/**'], dest: 'build/assets/', filter: 'isFile'}
-					//,{expand: true, flatten: true, src: ['source/css/fonts/**'], dest: 'build/css/fonts/', filter: 'isFile'}
+					{expand: true, flatten: true, src: ['source/assets/**'], dest: 'dist/assets/', filter: 'isFile'},
+					{src: 'source/index.html', dest: 'dist/index.html'}
+					//,{expand: true, flatten: true, src: ['source/css/fonts/**'], dest: 'dist/css/fonts/', filter: 'isFile'}
 				]
 			}
 		},
@@ -54,13 +60,30 @@ module.exports = function(grunt) {
 		cssmin: {
 			add_banner: {
 				options: {
-					banner: '/* My minified css file. build version: <%= pkg.version %> */'
+					banner: '/* My minified css file. dist version: <%= pkg.version %> */'
 				},
 				files: {
-					'dist/css/app.css': ['source/css/app.css'],
-					'dist/css/main.css': ['source/css/main.css']
+					'dist/css/app.min.css': ['dist/css/app.css'],
+					'dist/css/main.min.css': ['dist/css/main.css']
 				}
 			}
+		},
+
+		processhtml: {
+			dist: {
+				files: [{
+					expand: true,
+					cwd: 'source/',
+					src: ['**/*.html'],
+					dest: 'dist/',
+					ext: '.html'
+				}]
+			}
+		},
+
+		open : {
+			path: 'http://127.0.0.1:9000',
+			app: 'Google Chrome'
 		},
 
 		sass: {
@@ -75,13 +98,14 @@ module.exports = function(grunt) {
 				}
 			},
 
-			build: {
+			dist: {
 				options: {
 					style: 'compressed',
 					lineNumbers: false
 				},
 				files: {
-					'build/css/main.min.css': ['source/css/main.scss', 'source/css/app.scss']
+					'dist/css/app.css': 'source/css/app.scss',
+					'dist/css/main.css': 'source/css/main.scss'
 				}
 			}
 		},
@@ -96,13 +120,22 @@ module.exports = function(grunt) {
 					]
 				}
 			},
-			prod: {
+			dist: {
 				files: {
-					'build/js/app.min.js': [
+					'dist/js/app.min.js': [
 						'source/components/jquery/dist/jquery.min.js'
 						,'source/components/retina.js/src/retina.js'
 						,'source/js/main.js'
 					]
+				}
+			}
+		},
+
+		uncss: {
+			dist: {
+				files: {
+					'dist/css/main.min.css': ['dist/index.html'],
+					'dist/css/app.min.css': ['dist/index.html'],
 				}
 			}
 		},
@@ -123,28 +156,54 @@ module.exports = function(grunt) {
 				}
 			},
 
+			html: {
+				files: 'source/*.html',
+				tasks: 'copy:index',
+				options: {
+					livereload: true
+				}
+			},
+
 			css: {
 				files: '**/*.scss',
-				tasks: ['sass'],
+				tasks: 'sass',
 				options: {
-					livereload: true,
-				},
+					livereload: true
+				}
 			},
 
 			scripts: {
-				files: '**/*.js',
-				tasks: '',
+				files: 'source/*.js',
+				tasks: 'uglify',
 				options: {
-					livereload: true,
-				},
+					livereload: true
+				}
 			}
 		}
-
-
-
 	});
 
 	//Project task(s).
 	grunt.registerTask('default', []);
+
+	grunt.registerTask('serve', [
+		'clean:dev',
+		'copy:dev',
+		'copy:index',
+		'sass:dev',
+		'uglify:dev',
+		'connect',
+		'watch'
+	]);
+
+	grunt.registerTask('build', [
+		'clean:dist',
+		'copy:dist',
+		'sass:dist',
+		'cssmin',
+		'uncss',
+		'uglify:dist',
+		'processhtml'
+
+	]);
 
 };

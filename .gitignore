@@ -1,2 +1,6 @@
 node_modules
 source/components
+.idea/
+.sass-cache/
+dev/
+dist/
